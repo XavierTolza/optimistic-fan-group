@@ -12,7 +12,7 @@ cache:
     - .pip-cache/
 
 .base-python:
-  image: python:3.13-slim
+  image: python:3.13
   before_script:
     - pip install --upgrade pip
 
@@ -33,7 +33,6 @@ lint:black:
 test:pytest:
   extends: .base-python
   stage: test
-  image: python:3.13
   timeout: 30m
   script:
     - pip install -r requirements_test.txt
@@ -44,7 +43,7 @@ validate:hassfest:
   stage: validate
   timeout: 10m
   before_script:
-    - pip install --upgrade pip ruff
+    - pip install --upgrade pip ruff "homeassistant==$HA_CORE_TAG"
     - git clone --depth 1 --branch "$HA_CORE_TAG" https://github.com/home-assistant/core.git /tmp/ha-core
   script:
     - cd /tmp/ha-core
