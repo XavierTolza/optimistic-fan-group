@@ -42,7 +42,7 @@ slow the underlying devices are. The entity also sets `assumed_state = true`,
 so Home Assistant displays the "assumed state" indicator 🚩, honestly telling
 you the value may not yet match reality.
 
-> A `optimistic_fan_group.sync` service is available to discard the cache and
+> An `optimistic_fan_group.sync` service is available to discard the cache and
 > reload the real state of the members when you want to check reality.
 
 ---
@@ -176,16 +176,28 @@ emitted **instantly**, so dashboards and automations reacting to
 ## 🛠️ Development
 
 ```bash
-# Lint
-flake8 custom_components/optimistic_fan_group --max-line-length=100
-black custom_components/optimistic_fan_group
+# Install test dependencies
+pip install -r requirements_test.txt
 
-# Validate manifest (hassfest)
-pip install homeassistant
-python -m script.hassfest --requirements --integration-path custom_components/optimistic_fan_group
+# Lint
+flake8 custom_components/optimistic_fan_group tests scripts --max-line-length=100
+black custom_components/optimistic_fan_group tests scripts
+
+# Run the tests
+python -m pytest tests -q
+
+# Validate HACS structure
+python scripts/validate_hacs.py
+
+# Validate manifest (hassfest) — needs a Home Assistant core checkout
+pip install homeassistant ruff
+git clone --depth 1 --branch 2026.2.3 https://github.com/home-assistant/core.git /tmp/ha-core
+PYTHONPATH=/tmp/ha-core:/tmp/ha-core/script python -m script.hassfest \
+  --integration-path custom_components/optimistic_fan_group
 ```
 
-CI (`.gitlab-ci.yml`) runs `flake8`, `black` and `hassfest` on every push.
+CI (`.gitlab-ci.yml`) runs `flake8`, `black`, `pytest`, the HACS structure
+check and `hassfest` on every push.
 
 ## 📄 License
 

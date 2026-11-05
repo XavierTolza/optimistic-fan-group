@@ -43,7 +43,7 @@ validate:hassfest:
   stage: validate
   timeout: 10m
   before_script:
-    - pip install --upgrade pip ruff "homeassistant==$HA_CORE_TAG"
+    - pip install --upgrade pip ruff tqdm "homeassistant==$HA_CORE_TAG"
     - git clone --depth 1 --branch "$HA_CORE_TAG" https://github.com/home-assistant/core.git /tmp/ha-core
   script:
     - cd /tmp/ha-core
