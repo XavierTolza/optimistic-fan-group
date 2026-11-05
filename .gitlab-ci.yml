@@ -1,0 +1,42 @@
+stages:
+  - lint
+  - validate
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+cache:
+  paths:
+    - .pip-cache/
+
+.base-python:
+  image: python:3.13-slim
+  before_script:
+    - pip install --upgrade pip
+
+lint:flake8:
+  extends: .base-python
+  stage: lint
+  script:
+    - pip install flake8
+    - flake8 custom_components/optimistic_fan_group --max-line-length=100 --extend-ignore=E501,W503
+
+lint:black:
+  extends: .base-python
+  stage: lint
+  script:
+    - pip install black
+    - black --check custom_components/optimistic_fan_group
+
+validate:hassfest:
+  extends: .base-python
+  stage: validate
+  script:
+    - pip install homeassistant
+    - python -m script.hassfest --requirements --integration-path custom_components/optimistic_fan_group
+  allow_failure: true
+
+validate:hacs:
+  stage: validate
+  image: ghcr.io/hacs/action:main
+  allow_failure: true

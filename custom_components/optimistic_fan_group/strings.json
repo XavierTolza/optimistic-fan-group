@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Create an Optimistic Fan Group",
+        "description": "Select the fans to group. All commands will be applied immediately to the group state (optimistic cache), without waiting for the devices to confirm.",
+        "data": {
+          "name": "Group name",
+          "fans": "Member fans"
+        },
+        "data_description": {
+          "name": "Name of the new group entity (fan.*).",
+          "fans": "Select one or more existing fan entities to include in this group."
+        }
+      }
+    },
+    "error": {
+      "no_members": "Select at least one fan.",
+      "invalid_members": "One or more selected entities are not valid fan entities."
+    },
+    "abort": {
+      "already_configured": "A group with the same member fans already exists.",
+      "no_members": "No member fan selected."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit the Optimistic Fan Group",
+        "description": "Modify the name and/or the list of member fans of this group.",
+        "data": {
+          "name": "Group name",
+          "fans": "Member fans"
+        },
+        "data_description": {
+          "name": "Name of the group entity (fan.*).",
+          "fans": "Select one or more existing fan entities to include in this group."
+        }
+      }
+    }
+  },
+  "services": {
+    "sync": {
+      "name": "Re-synchronize state",
+      "description": "Discards the optimistic cache of the group and reloads the real state reported by its member fans.",
+      "fields": {
+        "entity_id": {
+          "name": "Group",
+          "description": "The optimistic fan group entity to re-synchronize."
+        }
+      }
+    }
+  }
+}

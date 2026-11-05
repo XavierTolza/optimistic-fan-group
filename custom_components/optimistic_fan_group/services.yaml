@@ -1,0 +1,7 @@
+sync:
+  name: Re-synchronize state
+  description: Discards the optimistic cache of the group and reloads the real state reported by its member fans.
+  target:
+    entity:
+      domain: fan
+      integration: optimistic_fan_group

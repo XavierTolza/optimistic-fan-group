@@ -1,0 +1,13 @@
+{
+  "domain": "optimistic_fan_group",
+  "name": "Optimistic Fan Group",
+  "codeowners": ["@XavierT"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://gitlab.com/XavierT/optimistic-fan-group",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "issue_tracker": "https://gitlab.com/XavierT/optimistic-fan-group/-/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

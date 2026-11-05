@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Créer un groupe de ventilateurs optimiste",
+        "description": "Sélectionnez les ventilateurs à regrouper. Toutes les commandes sont appliquées immédiatement à l'état du groupe (cache optimiste), sans attendre la confirmation des appareils.",
+        "data": {
+          "name": "Nom du groupe",
+          "fans": "Ventilateurs membres"
+        },
+        "data_description": {
+          "name": "Nom de la nouvelle entité de groupe (fan.*).",
+          "fans": "Sélectionnez une ou plusieurs entités ventilateur existantes à inclure dans ce groupe."
+        }
+      }
+    },
+    "error": {
+      "no_members": "Sélectionnez au moins un ventilateur.",
+      "invalid_members": "Une ou plusieurs entités sélectionnées ne sont pas des entités ventilateur valides."
+    },
+    "abort": {
+      "already_configured": "Un groupe avec les mêmes membres existe déjà.",
+      "no_members": "Aucun ventilateur membre sélectionné."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modifier le groupe de ventilateurs optimiste",
+        "description": "Modifiez le nom et/ou la liste des ventilateurs membres de ce groupe.",
+        "data": {
+          "name": "Nom du groupe",
+          "fans": "Ventilateurs membres"
+        },
+        "data_description": {
+          "name": "Nom de l'entité de groupe (fan.*).",
+          "fans": "Sélectionnez une ou plusieurs entités ventilateur existantes à inclure dans ce groupe."
+        }
+      }
+    }
+  },
+  "services": {
+    "sync": {
+      "name": "Resynchroniser l'état",
+      "description": "Abandonne le cache optimiste du groupe et recharge l'état réellement rapporté par ses ventilateurs membres.",
+      "fields": {
+        "entity_id": {
+          "name": "Groupe",
+          "description": "L'entité de groupe de ventilateurs optimiste à resynchroniser."
+        }
+      }
+    }
+  }
+}
