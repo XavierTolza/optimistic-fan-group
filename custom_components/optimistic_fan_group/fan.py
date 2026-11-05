@@ -203,8 +203,24 @@ class OptimisticFanGroup(FanEntity):
             self.async_write_ha_state()
 
     # ------------------------------------------------------------------
-    # Commands (optimistic: state is updated right away)
+    # Commands (optimistic: cache first, then forward to the members)
     # ------------------------------------------------------------------
+    async def _forward(self, service: str, data: dict) -> None:
+        """Forward a fan service call to every member of the group."""
+        data = {ATTR_ENTITY_ID: self._entity_ids, **data}
+        try:
+            await self.hass.services.async_call(
+                FAN_DOMAIN,
+                service,
+                data,
+                blocking=True,
+                context=self._context,
+            )
+        except Exception:  # noqa: BLE001 - the optimistic state must not break
+            _LOGGER.exception(
+                "Failed to forward fan.%s to %s", service, self._entity_ids
+            )
+
     async def async_turn_on(
         self,
         percentage: int | None = None,
@@ -212,23 +228,15 @@ class OptimisticFanGroup(FanEntity):
         **kwargs,
     ) -> None:
         """Turn the group on immediately, forward to every member."""
-        data = {ATTR_ENTITY_ID: self._entity_ids}
-        if percentage is not None:
-            data[ATTR_PERCENTAGE] = percentage
-        await self.hass.services.async_call(
-            FAN_DOMAIN,
-            SERVICE_TURN_ON,
-            data,
-            blocking=True,
-            context=self._context,
-        )
-
         self._attr_is_on = True
         if percentage is not None:
             self._attr_percentage = percentage
         elif self._attr_percentage is None:
             self._attr_percentage = 100
         self.async_write_ha_state()
+
+        data = {ATTR_PERCENTAGE: percentage} if percentage is not None else {}
+        await self._forward(SERVICE_TURN_ON, data)
 
     async def async_turn_off(
         self,
@@ -237,28 +245,14 @@ class OptimisticFanGroup(FanEntity):
         **kwargs,
     ) -> None:
         """Turn the group off immediately, forward to every member."""
-        await self.hass.services.async_call(
-            FAN_DOMAIN,
-            SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: self._entity_ids},
-            blocking=True,
-            context=self._context,
-        )
-
         # Keep the cached percentage so turning back on restores it.
         self._attr_is_on = False
         self.async_write_ha_state()
 
+        await self._forward(SERVICE_TURN_OFF, {})
+
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed of every member and of the optimistic cache."""
-        await self.hass.services.async_call(
-            FAN_DOMAIN,
-            SERVICE_SET_PERCENTAGE,
-            {ATTR_ENTITY_ID: self._entity_ids, ATTR_PERCENTAGE: percentage},
-            blocking=True,
-            context=self._context,
-        )
-
         self._attr_percentage = percentage
         if percentage == 0:
             self._attr_is_on = False
@@ -266,35 +260,25 @@ class OptimisticFanGroup(FanEntity):
             self._attr_is_on = True
         self.async_write_ha_state()
 
+        await self._forward(SERVICE_SET_PERCENTAGE, {ATTR_PERCENTAGE: percentage})
+
     async def async_set_direction(self, direction: str) -> None:
         """Set the direction of every member and of the optimistic cache."""
         if direction not in (DIRECTION_FORWARD, DIRECTION_REVERSE):
             _LOGGER.warning("Unsupported direction: %s", direction)
             return
 
-        await self.hass.services.async_call(
-            FAN_DOMAIN,
-            SERVICE_SET_DIRECTION,
-            {ATTR_ENTITY_ID: self._entity_ids, ATTR_DIRECTION: direction},
-            blocking=True,
-            context=self._context,
-        )
-
         self._attr_current_direction = direction
         self.async_write_ha_state()
 
+        await self._forward(SERVICE_SET_DIRECTION, {ATTR_DIRECTION: direction})
+
     async def async_oscillate(self, oscillating: bool) -> None:
         """Set oscillation of every member and of the optimistic cache."""
-        await self.hass.services.async_call(
-            FAN_DOMAIN,
-            SERVICE_OSCILLATE,
-            {ATTR_ENTITY_ID: self._entity_ids, ATTR_OSCILLATING: oscillating},
-            blocking=True,
-            context=self._context,
-        )
-
         self._attr_oscillating = oscillating
         self.async_write_ha_state()
+
+        await self._forward(SERVICE_OSCILLATE, {ATTR_OSCILLATING: oscillating})
 
     async def async_sync(self) -> None:
         """Discard the optimistic cache and reload the real member state."""
