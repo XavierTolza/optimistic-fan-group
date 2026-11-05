@@ -33,6 +33,8 @@ lint:black:
 test:pytest:
   extends: .base-python
   stage: test
+  image: python:3.13
+  timeout: 30m
   script:
     - pip install -r requirements_test.txt
     - python -m pytest tests -q
@@ -40,6 +42,7 @@ test:pytest:
 validate:hassfest:
   extends: .base-python
   stage: validate
+  timeout: 10m
   before_script:
     - pip install --upgrade pip ruff
     - git clone --depth 1 --branch "$HA_CORE_TAG" https://github.com/home-assistant/core.git /tmp/ha-core
