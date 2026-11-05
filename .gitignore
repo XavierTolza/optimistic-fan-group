@@ -48,3 +48,5 @@ Thumbs.db
 config/
 .storage/
 home-assistant_v2.db*
+# Agent memory (local only)
+AGENTS.md
