@@ -49,6 +49,8 @@ validate:hassfest:
       --integration-path "$CI_PROJECT_DIR/custom_components/optimistic_fan_group"
 
 validate:hacs:
+  extends: .base-python
   stage: validate
-  image: ghcr.io/hacs/action:main
-  allow_failure: true
+  before_script: []
+  script:
+    - python scripts/validate_hacs.py
