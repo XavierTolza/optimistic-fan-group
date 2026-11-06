@@ -34,8 +34,21 @@ cache**:
 2. The command is **immediately forwarded to every member fan**.
 3. **The group entity updates its own state instantly** — it does **not** wait
    for the network nor for the real state reported by the devices.
-4. The optimistic state is kept in memory until you change it (or explicitly
-   re-synchronize it).
+4. The optimistic state is kept in memory — **and restored after a Home
+   Assistant restart** — until you change it (or explicitly re-synchronize it).
+
+**Zero feedback: the group is fully autonomous from its members.** It never
+reads their state — not at startup, not later: a fresh group starts `off`
+regardless of what the members report, and a member reporting `off`, `0%` or
+`unavailable` can never change the group's state. Only your commands do.
+
+Built-in command behaviours:
+
+- **Setting a speed while the group is off turns it ON** (and the speed is
+  persisted): the members receive `fan.turn_on` with the requested speed.
+- **Turning the group off keeps the last speed**: the next `turn_on` restores
+  it exactly.
+- **Speed 0** turns the group off without erasing the stored speed.
 
 The result: instant, perfectly consistent feedback in the UI, no matter how
 slow the underlying devices are. The entity also sets `assumed_state = true`,
@@ -43,7 +56,8 @@ so Home Assistant displays the "assumed state" indicator 🚩, honestly telling
 you the value may not yet match reality.
 
 > An `optimistic_fan_group.sync` service is available to discard the cache and
-> reload the real state of the members when you want to check reality.
+> reload the real state of the members when you want to check reality — this
+> is the **only** moment member states are ever read.
 
 ---
 
@@ -125,14 +139,14 @@ fan:
 
 | Feature | Optimistic behaviour |
 |---|---|
-| `TURN_ON` / `TURN_OFF` | State flips immediately, command forwarded to all members |
-| `SET_SPEED` (`percentage`) | Percentage stored instantly, forwarded to all members |
+| `TURN_ON` / `TURN_OFF` | State flips immediately, command forwarded to all members (with the cached speed) |
+| `SET_SPEED` (`percentage`) | Percentage stored instantly; **setting a speed while off switches the group ON** |
 | `DIRECTION` (forward/reverse) | Direction stored instantly |
 | `OSCILLATE` | Oscillation flag stored instantly |
 | `TOGGLE` | Derived from the optimistic state |
 
-The group is available as long as at least one member is known to Home
-Assistant.
+The group is **always available**: it does not depend on the members' states
+(zero feedback).
 
 ## 🔁 Re-synchronize
 
@@ -140,7 +154,8 @@ The optimistic cache can drift from reality if a device is manually switched
 off (wall switch, IR remote...). Two options:
 
 - Call the service `optimistic_fan_group.sync` on the group entity to reload
-  the real member state into the group.
+  the real member state into the group — the only explicit way member states
+  are ever read.
 - Or simply send any command again — the optimistic state will overwrite the
   cache.
 

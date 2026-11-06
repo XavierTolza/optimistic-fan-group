@@ -1,8 +1,10 @@
 """Fan platform for the Optimistic Fan Group integration.
 
-The group entity implements an *optimistic* cache: every command is forwarded
-to the member fans and is immediately reflected in the group state, without
-waiting for any confirmation from the network or the devices themselves.
+The group entity is fully autonomous: it never reads the state of its member
+fans (zero feedback). Every user command is forwarded to the members and
+immediately persisted in the group's own optimistic cache — including across
+Home Assistant restarts — without any confirmation from the network or the
+devices.
 """
 
 from __future__ import annotations
@@ -22,13 +24,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_NAME,
+    STATE_ON,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
@@ -131,8 +134,12 @@ def _async_register_sync_service(hass: HomeAssistant) -> None:
     )
 
 
-class OptimisticFanGroup(FanEntity):
-    """A fan group with an optimistic (immediate) state cache."""
+class OptimisticFanGroup(FanEntity, RestoreEntity):
+    """A fan group fully autonomous from its members (zero feedback).
+
+    The group state only ever reflects the commands issued on the group
+    itself; the members' states are never read automatically.
+    """
 
     _attr_should_poll = False
     _attr_has_entity_name = False
@@ -152,23 +159,24 @@ class OptimisticFanGroup(FanEntity):
         self._attr_unique_id = unique_id
         self._entity_ids = entity_ids
 
-        # Optimistic cache.
-        self._attr_is_on: bool | None = None
+        # Optimistic cache: defaults to off until the first command.
+        self._attr_is_on: bool = False
         self._attr_percentage: int | None = None
         self._attr_current_direction: str | None = None
         self._attr_oscillating: bool | None = None
 
     async def async_added_to_hass(self) -> None:
-        """Seed the cache from the real state, then only track availability."""
+        """Restore the last commanded state — never read the members' state."""
         await super().async_added_to_hass()
-        self._apply_real_state(warn=False)
-        self.async_on_remove(
-            async_track_state_change_event(
-                self.hass,
-                self._entity_ids,
-                self._handle_member_state_changed,
-            )
-        )
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+        self._attr_is_on = last_state.state == STATE_ON
+        percentage = last_state.attributes.get(ATTR_PERCENTAGE)
+        if percentage is not None:
+            self._attr_percentage = int(percentage)
+        self._attr_current_direction = last_state.attributes.get(ATTR_DIRECTION)
+        self._attr_oscillating = last_state.attributes.get(ATTR_OSCILLATING)
 
     # ------------------------------------------------------------------
     # State helpers
@@ -179,28 +187,9 @@ class OptimisticFanGroup(FanEntity):
         return self._attr_is_on
 
     @property
-    def available(self) -> bool:
-        """Return True if at least one member fan is available."""
-        states = [self.hass.states.get(entity_id) for entity_id in self._entity_ids]
-        known = [state for state in states if state is not None]
-        if not known:
-            return True
-        return any(
-            state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN) for state in known
-        )
-
-    @property
     def extra_state_attributes(self) -> dict:
         """Return the member entities of the group."""
         return {"members": self._entity_ids}
-
-    @callback
-    def _handle_member_state_changed(self, event) -> None:
-        """Refresh capabilities/availability, never the optimistic state."""
-        features = SUPPORTED_FEATURES
-        if self._attr_supported_features != features:
-            self._attr_supported_features = features
-            self.async_write_ha_state()
 
     # ------------------------------------------------------------------
     # Commands (optimistic: cache first, then forward to the members)
@@ -228,15 +217,15 @@ class OptimisticFanGroup(FanEntity):
         **kwargs,
     ) -> None:
         """Turn the group on immediately, forward to every member."""
-        self._attr_is_on = True
         if percentage is not None:
             self._attr_percentage = percentage
         elif self._attr_percentage is None:
             self._attr_percentage = 100
+        self._attr_is_on = True
         self.async_write_ha_state()
 
-        data = {ATTR_PERCENTAGE: percentage} if percentage is not None else {}
-        await self._forward(SERVICE_TURN_ON, data)
+        # Forward the cached speed too, so members match the group exactly.
+        await self._forward(SERVICE_TURN_ON, {ATTR_PERCENTAGE: self._attr_percentage})
 
     async def async_turn_off(
         self,
@@ -252,15 +241,25 @@ class OptimisticFanGroup(FanEntity):
         await self._forward(SERVICE_TURN_OFF, {})
 
     async def async_set_percentage(self, percentage: int) -> None:
-        """Set the speed of every member and of the optimistic cache."""
-        self._attr_percentage = percentage
+        """Set the speed, turning the group on if it was off."""
         if percentage == 0:
+            # Speed 0 means off: keep the last non-zero speed for the next
+            # turn-on so it stays persistent.
             self._attr_is_on = False
-        elif self._attr_is_on is not False:
-            self._attr_is_on = True
+            self.async_write_ha_state()
+            await self._forward(SERVICE_TURN_OFF, {})
+            return
+
+        was_on = self._attr_is_on
+        self._attr_percentage = percentage
+        self._attr_is_on = True
         self.async_write_ha_state()
 
-        await self._forward(SERVICE_SET_PERCENTAGE, {ATTR_PERCENTAGE: percentage})
+        if was_on:
+            await self._forward(SERVICE_SET_PERCENTAGE, {ATTR_PERCENTAGE: percentage})
+        else:
+            # Group was off: turn the members on with the requested speed.
+            await self._forward(SERVICE_TURN_ON, {ATTR_PERCENTAGE: percentage})
 
     async def async_set_direction(self, direction: str) -> None:
         """Set the direction of every member and of the optimistic cache."""
