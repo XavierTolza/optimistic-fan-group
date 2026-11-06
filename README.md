@@ -1,6 +1,6 @@
 # Optimistic Fan Group 🌀
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=XavierT&repository=optimistic-fan-group&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=XavierTolza&repository=optimistic-fan-group&category=integration)
 [![Open your Home Assistant instance and start a new automation.](https://my.home-assistant.io/badges/developer_tools.svg)](https://my.home-assistant.io/redirect/developer_tools/)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -57,10 +57,10 @@ you the value may not yet match reality.
 
    | Field | Value |
    |---|---|
-   | Repository URL | `https://gitlab.com/XavierT/optimistic-fan-group` |
+   | Repository URL | `https://github.com/XavierTolza/optimistic-fan-group` |
    | Category | **Integration** |
 
-   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=XavierT&repository=optimistic-fan-group&category=integration)
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=XavierTolza&repository=optimistic-fan-group&category=integration)
 
 3. Click **DOWNLOAD**, pick the latest version, then **download**.
 4. Restart Home Assistant when prompted.
@@ -196,7 +196,7 @@ PYTHONPATH=/tmp/ha-core:/tmp/ha-core/script python -m script.hassfest \
   --integration-path custom_components/optimistic_fan_group
 ```
 
-CI (`.gitlab-ci.yml`) runs `flake8`, `black`, `pytest`, the HACS structure
+GitHub Actions (`.github/workflows/ci.yml`) runs `flake8`, `black`, `pytest`, the HACS structure
 check and `hassfest` on every push.
 
 ## 📄 License
